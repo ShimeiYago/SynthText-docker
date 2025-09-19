@@ -65,13 +65,17 @@ docker-compose run --rm synthtext python pack_bgdata_to_h5.py -i downloads/bg_da
 docker-compose run --rm synthtext python gen.py --db_path data/dset_big.h5
 ```
 
-### Generating Samples with Text in non-Latin (English) Scripts
-- @JarveeLee has modified the pipeline for generating samples with Chinese text [here](https://github.com/JarveeLee/SynthText_Chinese_version).
-- @adavoudi has modified it for arabic/persian script, which flows from right-to-left [here](https://github.com/adavoudi/SynthText).
-- @MichalBusta has adapted it for a number of languages (e.g. Bangla, Arabic, Chinese, Japanese, Korean) [here](https://github.com/MichalBusta/E2E-MLT).
-- @gachiemchiep has adapted for Japanese [here](https://github.com/gachiemchiep/SynthText).
-- @gungui98 has adapted for Vietnamese [here](https://github.com/gungui98/SynthText).
-- @youngkyung has adapted for Korean [here](https://github.com/youngkyung/SynthText_kr).
+## Cumstom Font
 
-### Further Information
-Please refer to the paper for more information, or contact me (email address in the paper).
+### Add Fonts
+
+Place any font files (.ttf, .otf) in `data/fonts` and update `data/fonts/fontlist.txt` to write relative paths to the files.
+
+### Update Font Size Model After Adding Fonts
+After adding (or removing/replacing) fonts, regenerate the size conversion model `data/models/font_px2pt.cp`:
+
+```bash
+docker-compose run --rm synthtext python invert_font_size.py --viz
+```
+
+`--viz` saves diagnostic fit plots to `results/font_model_plots/` (useful to quickly check the linear fit quality).
