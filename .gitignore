@@ -88,3 +88,16 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# Project data and outputs (generated / large)
+data/
+results/
+
+# Temporary files
+*.tmp
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
