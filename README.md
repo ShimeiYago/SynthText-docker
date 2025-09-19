@@ -1,5 +1,6 @@
-# SynthText
-Code for generating synthetic text images as described in ["Synthetic Data for Text Localisation in Natural Images", Ankush Gupta, Andrea Vedaldi, Andrew Zisserman, CVPR 2016](http://www.robots.ox.ac.uk/~vgg/data/scenetext/).
+# SynthText (Docker)
+
+**Docker-enabled fork** of the official SynthText repository for generating synthetic text images as described in ["Synthetic Data for Text Localisation in Natural Images", Ankush Gupta, Andrea Vedaldi, Andrew Zisserman, CVPR 2016](http://www.robots.ox.ac.uk/~vgg/data/scenetext/).
 
 
 **Synthetic Scene-Text Image Samples**
@@ -30,34 +31,39 @@ If you want to visualize the results stored in  `results/SynthText.h5` later, ru
 docker-compose run --rm synthtext python visualize_results.py
 ```
 
-### Pre-generated Dataset
-A dataset with approximately 800000 synthetic scene-text images generated with this code can be found [here](http://www.robots.ox.ac.uk/~vgg/data/scenetext/).
+## Pre-generated Dataset
 
-### Adding New Images
-Segmentation and depth-maps are required to use new images as background. Sample scripts for obtaining these are available [here](https://github.com/ankush-me/SynthText/tree/master/prep_scripts).
+A dataset with approximately 800000 synthetic scene-text images generated with this code can be downloaded with following procedures.
 
-* `predict_depth.m` MATLAB script to regress a depth mask for a given RGB image; uses the network of [Liu etal.](https://bitbucket.org/fayao/dcnf-fcsp/) However, more recent works (e.g., [this](https://github.com/iro-cp/FCRN-DepthPrediction)) might give better results.
-* `run_ucm.m` and `floodFill.py` for getting segmentation masks using [gPb-UCM](https://github.com/jponttuset/mcg).
+### Download files
+The 8,000 background images used in the paper, along with their segmentation and depth masks, can be downloaded from [here](https://academictorrents.com/details/2dba9518166cbd141534cbf381aa3e99a087e83c).
 
-For an explanation of the fields in `dset.h5` (e.g.: `seg`,`area`,`label`), please check this [comment](https://github.com/ankush-me/SynthText/issues/5#issuecomment-274490044).
+Place downloaded directory `bg_data/` in `downloads/bg_data/`.
 
-### Pre-processed Background Images
-The 8,000 background images used in the paper, along with their segmentation and depth masks, have been uploaded here:
-`http://www.robots.ox.ac.uk/~vgg/data/scenetext/preproc/<filename>`, where, `<filename>` can be:
-
-|    filenames    | size |                      description                     |             md5 hash             |
-|:--------------- | ----:|:---------------------------------------------------- |:-------------------------------- |
-| `imnames.cp`    | 180K | names of images which do not contain background text |                                  |
-| `bg_img.tar.gz` | 8.9G | images (filter these using `imnames.cp`)             | 3eac26af5f731792c9d95838a23b5047 |
-| `depth.h5`      |  15G | depth maps                                           | af97f6e6c9651af4efb7b1ff12a5dc1b |
-| `seg.h5`        | 6.9G | segmentation maps                                    | 1605f6e629b2524a3902a5ea729e86b2 |
-
-Note: due to large size, `depth.h5` is also available for download as 3-part split-files of 5G each.
-These part files are named: `depth.h5-00, depth.h5-01, depth.h5-02`. Download using the path above, and put them together using `cat depth.h5-0* > depth.h5`.
-
-[`use_preproc_bg.py`](https://github.com/ankush-me/SynthText/blob/master/use_preproc_bg.py) provides sample code for reading this data.
+| Filename               | Size | Description                                          | MD5 hash                         |
+|:-----------------------| ----:|:-----------------------------------------------------|:---------------------------------|
+| `bg_data/imnames.cp`   | 180K | Names of images which do not contain background text |                                  |
+| `bg_data/bg_img.tar.gz`| 8.9G | Images (filter these using `imnames.cp`)             | 3eac26af5f731792c9d95838a23b5047 |
+| `bg_data/depth.h5`     |  15G | Depth maps                                           | af97f6e6c9651af4efb7b1ff12a5dc1b |
+| `bg_data/seg.h5`       | 6.9G | Segmentation maps                                    | 1605f6e629b2524a3902a5ea729e86b2 |
 
 Note: I do not own the copyright to these images.
+
+### Pack files to h5
+
+```bash
+# Extracts `bg_img.tar.gz` into the `bg_img/` directory
+tar xf downloads/bg_data/bg_img.tar.gz -C downloads/bg_data
+
+# Pack images + depth + segmentation into a single HDF5
+docker-compose run --rm synthtext python pack_bgdata_to_h5.py -i downloads/bg_data -o data/dset_big.h5
+```
+
+### Generate Synth Images with the big backgrond images
+
+```bash
+docker-compose run --rm synthtext python gen.py --db_path data/dset_big.h5
+```
 
 ### Generating Samples with Text in non-Latin (English) Scripts
 - @JarveeLee has modified the pipeline for generating samples with Chinese text [here](https://github.com/JarveeLee/SynthText_Chinese_version).
