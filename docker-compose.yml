@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  synthtext:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Build for x86_64 even from Apple Silicon
+      platforms:
+        - linux/amd64
+    platform: linux/amd64
+    volumes:
+      - .:/app
+    stdin_open: true
+    tty: true
+    command: ["python", "gen.py"]

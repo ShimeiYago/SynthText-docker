@@ -5,18 +5,14 @@ Code for generating synthetic text images as described in ["Synthetic Data for T
 **Synthetic Scene-Text Image Samples**
 ![Synthetic Scene-Text Samples](samples.png "Synthetic Samples")
 
-The code in the `master` branch is for Python2. Python3 is supported in the `python3` branch.
+## Getting Started
 
-The main dependencies are:
+```bash
+# Build Docker images
+docker-compose build
 
-```
-pygame, opencv (cv2), PIL (Image), numpy, matplotlib, h5py, scipy
-```
-
-### Generating samples
-
-```
-python gen.py --viz
+# Run SynthText to generate samples
+docker-compose run --rm synthtext python gen.py
 ```
 
 This will download a data file (~56M) to the `data` directory. This data file includes:
@@ -27,11 +23,13 @@ This will download a data file (~56M) to the `data` directory. This data file in
   - **data/models/colors_new.cp**: Color-model (foreground/background text color model), learnt from the IIIT-5K word dataset.
   - **data/models**: Other cPickle files (**char\_freq.cp**: frequency of each character in the text dataset; **font\_px2pt.cp**: conversion from pt to px for various fonts: If you add a new font, make sure that the corresponding model is present in this file, if not you can add it by adapting `invert_font_size.py`).
 
-This script will generate random scene-text image samples and store them in an h5 file in `results/SynthText.h5`. If the `--viz` option is specified, the generated output will be visualized as the script is being run; omit the `--viz` option to turn-off the visualizations. If you want to visualize the results stored in  `results/SynthText.h5` later, run:
+This script will generate random scene-text image samples and store them in an h5 file in `results/SynthText.h5`.
+If you want to visualize the results stored in  `results/SynthText.h5` later, run:
 
+```bash
+docker-compose run --rm synthtext python visualize_results.py
 ```
-python visualize_results.py
-```
+
 ### Pre-generated Dataset
 A dataset with approximately 800000 synthetic scene-text images generated with this code can be found [here](http://www.robots.ox.ac.uk/~vgg/data/scenetext/).
 
