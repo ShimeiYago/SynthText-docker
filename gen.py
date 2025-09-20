@@ -50,7 +50,6 @@ def get_data(db_path: str):
         out_fname = 'data.tar.gz'
         wget.download(DATA_URL,out=out_fname)
         tar = tarfile.open(out_fname)
-        # Safe extraction (Python 3.12+): only extract regular files
         try:
           tar.extractall(filter='data')
         except TypeError:
@@ -132,7 +131,7 @@ def add_res_to_db(imgname,res,db, store_line_bb=False):
         db['data'][dname].attrs['lineBB'] = np.concatenate(lineBB_list, axis=2)
 
 
-def main(viz=False, db_path: str = DB_FNAME, store_line_bb: bool = False):
+def main(viz=False, db_path: str = DB_FNAME, store_line_bb: bool = False, n_limit: int = -1):
   # open databases:
   print (colorize(Color.BLUE,'getting data..',bold=True))
   db = get_data(db_path)
@@ -153,6 +152,15 @@ def main(viz=False, db_path: str = DB_FNAME, store_line_bb: bool = False):
   start_idx,end_idx = 0,min(NUM_IMG, N)
 
   RV3 = RendererV3(DATA_PATH,max_time=SECS_PER_IMG)
+  # counter for how many synthetic instances have been written (across all images)
+  generated_count = 0
+  use_limit = n_limit > 0
+  if use_limit:
+    def _progress(gen_cnt, img_idx):
+      return f"{gen_cnt+1} of {n_limit}"
+  else:
+    def _progress(gen_cnt, img_idx):
+      return f"{img_idx+1} of {end_idx}"
   for i in range(start_idx,end_idx):
     imname = imnames[i]
     try:
@@ -174,12 +182,17 @@ def main(viz=False, db_path: str = DB_FNAME, store_line_bb: bool = False):
       img = np.array(img.resize(sz,Image.ANTIALIAS))
       seg = np.array(Image.fromarray(seg).resize(sz,Image.NEAREST))
 
-      print (colorize(Color.RED,'%d of %d'%(i,end_idx-1), bold=True))
+      # progress display (branchless per-iteration)
+      print(colorize(Color.RED, _progress(generated_count, i), bold=True))
       res = RV3.render_text(img,depth,seg,area,label,
                             ninstance=INSTANCE_PER_IMAGE,viz=viz)
       if len(res) > 0:
         # non-empty : successful in placing text:
         add_res_to_db(imname,res,out_db, store_line_bb=store_line_bb)
+        generated_count += len(res)
+        if use_limit and generated_count >= n_limit:
+          print(colorize(Color.GREEN, f"Reached n_limit={n_limit}; stopping early." , bold=True))
+          break
       # visualize the output:
       if viz:
         if 'q' in input(colorize(Color.RED,'continue? (enter to continue, q to exit): ',True)):
@@ -197,5 +210,6 @@ if __name__=='__main__':
   parser = argparse.ArgumentParser(description='Genereate Synthetic Scene-Text Images')
   parser.add_argument('--db_path', default=DB_FNAME, help=f'Input background DB (default: {DB_FNAME})')
   parser.add_argument('--line_bb', action='store_true', dest='line_bb', default=False, help='store line-level rotated rectangles as lineBB attribute')
+  parser.add_argument('-n','--n_limit', type=int, default=-1, help='Max number of generated instances to store (<=0 means no limit, default: unlimited)')
   args = parser.parse_args()
-  main(False, args.db_path, store_line_bb=args.line_bb)
+  main(False, args.db_path, store_line_bb=args.line_bb, n_limit=args.n_limit)
