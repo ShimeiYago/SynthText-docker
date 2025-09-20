@@ -233,7 +233,11 @@ def ssc(v):
     """
     Returns the skew-symmetric cross-product matrix corresponding to v.
     """
-    v /= np.linalg.norm(v)
+    n = np.linalg.norm(v)
+    if not np.isfinite(n) or n < 1e-12:
+        # Degenerate; return zero so downstream Rodrigues becomes identity.
+        return np.zeros((3,3))
+    v = v / n
     return np.array([[    0, -v[2],  v[1]],
                      [ v[2],     0, -v[0]],
                      [-v[1],  v[0],     0]])
@@ -243,8 +247,12 @@ def rot3d(v1,v2):
     Rodrigues formula : find R_3x3 rotation matrix such that v2 = R*v1.
     https://en.wikipedia.org/wiki/Rodrigues'_rotation_formula#Matrix_notation
     """
-    v1 /= np.linalg.norm(v1)
-    v2 /= np.linalg.norm(v2)
+    n1 = np.linalg.norm(v1)
+    n2 = np.linalg.norm(v2)
+    if (not np.isfinite(n1)) or n1 < 1e-12 or (not np.isfinite(n2)) or n2 < 1e-12:
+        return np.eye(3)
+    v1 = v1 / n1
+    v2 = v2 / n2
     v3 = np.cross(v1,v2)
     s = np.linalg.norm(v3)
     c = v1.dot(v2)
@@ -257,10 +265,25 @@ def unrotate2d(pts):
     finds principal axes of pts and gives a rotation matrix (2d)
     to realign the axes of max variance to x,y.
     """
+    # Remove non-finite rows early
+    if pts.ndim != 2 or pts.shape[0] < 2:
+        return np.eye(pts.shape[1]) if pts.ndim == 2 else np.eye(2)
+    pts = pts[np.isfinite(pts).all(1)]
+    if pts.shape[0] < 2:
+        return np.eye(pts.shape[1])
     mu = np.median(pts,axis=0)
-    pts -= mu[None,:]
-    l,R = np.linalg.eig(pts.T.dot(pts))
-    R = R / np.linalg.norm(R,axis=0)[None,:]
+    pts = pts - mu[None,:]
+    G = pts.T.dot(pts)
+    if not np.isfinite(G).all():
+        return np.eye(G.shape[0])
+    try:
+        l,R = np.linalg.eig(G)
+    except Exception:
+        return np.eye(G.shape[0])
+    # Normalize eigenvectors, guarding zero columns
+    col_norm = np.linalg.norm(R,axis=0)
+    col_norm[col_norm < 1e-12] = 1.0
+    R = R / col_norm[None,:]
 
     # make R compatible with x-y axes:
     if abs(R[0,0]) < abs(R[0,1]): #compare dot-products with [1,0].T
