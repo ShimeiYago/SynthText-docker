@@ -16,6 +16,7 @@ import numpy as np
 import h5py
 import os, sys, traceback
 import os.path as osp
+import cv2, itertools
 from synthgen import *
 from common import *
 import wget, tarfile
@@ -74,7 +75,7 @@ def get_data(db_path: str):
   return h5py.File(db_path,'r')
 
 
-def add_res_to_db(imgname,res,db):
+def add_res_to_db(imgname,res,db, store_line_bb=False):
   """
   Add the synthetically generated text image instance
   and other metadata to the dataset.
@@ -89,9 +90,48 @@ def add_res_to_db(imgname,res,db):
     L = res[i]['txt']
     L = [n.encode("ascii", "ignore") for n in L]
     db['data'][dname].attrs['txt'] = L
+    if store_line_bb:
+      # Visual line segmentation: split each placed text snippet by embedded newlines, without
+      # altering stored txt (original list kept). Character ordering in charBB already excludes spaces/newlines.
+      charBB = res[i]['charBB']  # 2x4xNc
+      logical_blocks = res[i]['txt']  # original blocks (may contain '\n')
+      # Build per-visual-line spans by walking characters while skipping whitespace/newline chars.
+      visual_lines = []  # list of (start_idx,end_idx)
+      cursor = 0
+      for block in logical_blocks:
+        # preserve structure: split by '\n' but we must map to contiguous chars (excluding spaces and newlines)
+        sublines = block.split('\n')
+        for si, sub in enumerate(sublines):
+          stripped = ''.join(sub.split())  # remove all whitespace for char count within this visual line
+          length = len(stripped)
+          if length > 0:
+            visual_lines.append((cursor, cursor + length))
+          cursor += length
+      # Fit box per visual line
+      lineBB_list = []
+      for (s,e) in visual_lines:
+        if e <= s:
+          continue
+        cc = charBB[:,:,s:e]
+        cc_pts = np.squeeze(np.concatenate(np.dsplit(cc,cc.shape[-1]),axis=1)).T.astype('float32')
+        rect = cv2.minAreaRect(cc_pts.copy())
+        box = np.array(cv2.boxPoints(rect))
+        if cc_pts.shape[0] >= 4:
+          cc_tblr = np.c_[cc_pts[0,:], cc_pts[-3,:], cc_pts[-2,:], cc_pts[3,:]].T
+          perm4 = np.array(list(itertools.permutations(np.arange(4))))
+          dists = []
+          for pidx in range(perm4.shape[0]):
+            d = np.sum(np.linalg.norm(box[perm4[pidx],:]-cc_tblr,axis=1))
+            dists.append(d)
+          box_ord = box[perm4[np.argmin(dists)],:]
+        else:
+          box_ord = box
+        lineBB_list.append(box_ord.T[:, :, None] if box_ord.T.ndim==2 else box_ord.T)
+      if lineBB_list:
+        db['data'][dname].attrs['lineBB'] = np.concatenate(lineBB_list, axis=2)
 
 
-def main(viz=False, db_path: str = DB_FNAME):
+def main(viz=False, db_path: str = DB_FNAME, store_line_bb: bool = False):
   # open databases:
   print (colorize(Color.BLUE,'getting data..',bold=True))
   db = get_data(db_path)
@@ -138,7 +178,7 @@ def main(viz=False, db_path: str = DB_FNAME):
                             ninstance=INSTANCE_PER_IMAGE,viz=viz)
       if len(res) > 0:
         # non-empty : successful in placing text:
-        add_res_to_db(imname,res,out_db)
+        add_res_to_db(imname,res,out_db, store_line_bb=store_line_bb)
       # visualize the output:
       if viz:
         if 'q' in input(colorize(Color.RED,'continue? (enter to continue, q to exit): ',True)):
@@ -156,5 +196,6 @@ if __name__=='__main__':
   parser = argparse.ArgumentParser(description='Genereate Synthetic Scene-Text Images')
   parser.add_argument('--db_path', default=DB_FNAME, help=f'Input background DB (default: {DB_FNAME})')
   parser.add_argument('--viz',action='store_true',dest='viz',default=False,help='flag for turning on visualizations')
+  parser.add_argument('--line_bb', action='store_true', dest='line_bb', default=False, help='store line-level rotated rectangles as lineBB attribute')
   args = parser.parse_args()
-  main(args.viz, args.db_path)
+  main(args.viz, args.db_path, store_line_bb=args.line_bb)

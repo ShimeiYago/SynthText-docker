@@ -34,7 +34,7 @@ docker-compose run --rm synthtext python visualize_results.py
 
 A dataset with approximately 800000 synthetic scene-text images generated with this code can be downloaded with following procedures.
 
-### Download files
+### 2.1. Download files
 The 8,000 background images used in the paper, along with their segmentation and depth masks, can be downloaded from [here](https://academictorrents.com/details/2dba9518166cbd141534cbf381aa3e99a087e83c).
 
 Place downloaded directory `bg_data/` in `downloads/bg_data/`.
@@ -48,7 +48,7 @@ Place downloaded directory `bg_data/` in `downloads/bg_data/`.
 
 Note: I do not own the copyright to these images.
 
-### Pack files to h5
+### 2.2. Pack files to h5
 
 ```bash
 # Extracts `bg_img.tar.gz` into the `bg_img/` directory
@@ -58,15 +58,15 @@ tar xf downloads/bg_data/bg_img.tar.gz -C downloads/bg_data
 docker-compose run --rm synthtext python pack_bgdata_to_h5.py -i downloads/bg_data -o data/dset_big.h5
 ```
 
-### Generate Synth Images with the big backgrond images
+### 2.3. Generate Synth Images with the big backgrond images
 
 ```bash
 docker-compose run --rm synthtext python gen.py --db_path data/dset_big.h5
 ```
 
-## 3. Cumstom Font
+## 3. Cumstom Font (Optional)
 
-### Add Fonts
+### 3.1. Add Fonts
 
 Place any font files (.ttf, .otf) in `data/fonts` and update `data/fonts/fontlist.txt` to write relative paths to the files.
 
@@ -78,3 +78,23 @@ docker-compose run --rm synthtext python invert_font_size.py --viz
 ```
 
 `--viz` saves diagnostic fit plots to `results/font_model_plots/` (useful to quickly check the linear fit quality).
+
+## 4. Line-Level Bounding Boxes (Optional)
+
+We extended the tooling to optionally export and visualize line-level rotated bounding boxes (lineBB) in addition to the original character (charBB) and word (wordBB) boxes.
+
+### 4.1. Generate with Line Boxes
+
+Add `--line_bb` option to generate dataset with lineBB annotations:
+
+```bash
+docker-compose run --rm synthtext python gen.py --line_bb
+```
+
+### 4.2. Visualize
+
+The visualization script also support `--line_bb` option to show only line boxes.
+
+```bash
+docker-compose run --rm synthtext python visualize_results.py --line_bb
+```
