@@ -1,6 +1,6 @@
 # SynthText (Docker)
 
-**Run the original [ankush-me/SynthText] with its historical environment (Python 3.6 & legacy wheels) on any modern machine via Docker (linux/amd64).**
+**Run the original [ankush-me/SynthText](https://github.com/ankush-me/SynthText) with its historical environment (Python 3.6 & legacy wheels) on any modern machine via Docker (linux/amd64).**
 
 **Synthetic Scene-Text Image Samples**
 ![Synthetic Scene-Text Samples](samples.png "Synthetic Samples")
