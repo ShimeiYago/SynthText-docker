@@ -33,30 +33,45 @@ DB_FNAME = osp.join(DATA_PATH,'dset.h5')
 DATA_URL = 'http://www.robots.ox.ac.uk/~ankush/data.tar.gz'
 OUT_FILE = 'results/SynthText.h5'
 
-def get_data():
+def get_data(db_path: str):
   """
   Download the image,depth and segmentation data:
   Returns, the h5 database.
   """
-  if not osp.exists(DB_FNAME):
-    try:
-      colorprint(Color.BLUE,'\tdownloading data (56 M) from: '+DATA_URL,bold=True)
-      print()
-      sys.stdout.flush()
-      out_fname = 'data.tar.gz'
-      wget.download(DATA_URL,out=out_fname)
-      tar = tarfile.open(out_fname)
-      tar.extractall()
-      tar.close()
-      os.remove(out_fname)
-      colorprint(Color.BLUE,'\n\tdata saved at:'+DB_FNAME,bold=True)
-      sys.stdout.flush()
-    except:
-      print (colorize(Color.RED,'Data not found and have problems downloading.',bold=True))
+  # Ensure data directory exists
+  if not osp.exists(db_path):
+    # Only auto-download when the requested path matches the default dataset path
+    if osp.abspath(db_path) == osp.abspath(DB_FNAME):
+      try:
+        colorprint(Color.BLUE,'\tdownloading data (56 M) from: '+DATA_URL,bold=True)
+        print()
+        sys.stdout.flush()
+        out_fname = 'data.tar.gz'
+        wget.download(DATA_URL,out=out_fname)
+        tar = tarfile.open(out_fname)
+        # Safe extraction (Python 3.12+): only extract regular files
+        try:
+          tar.extractall(filter='data')
+        except TypeError:
+          # Older Python fallback without filter
+          tar.extractall()
+        tar.close()
+        os.remove(out_fname)
+        colorprint(Color.BLUE,'\n\tdata saved at:'+db_path,bold=True)
+        sys.stdout.flush()
+      except Exception:
+        print(colorize(Color.RED,'Data not found and automatic download failed.',bold=True))
+        sys.stdout.flush()
+        sys.exit(-1)
+    else:
+      # Custom path supplied but file missing: abort with clear message
+      print(colorize(Color.RED, f"Specified db_path '{db_path}' does not exist. No auto-download for custom paths.", bold=True))
+      print(colorize(Color.RED, f"Either place the HDF5 at this location or omit --db_path to allow automatic download to '{DB_FNAME}'.", bold=True))
+
       sys.stdout.flush()
       sys.exit(-1)
   # open the h5 file and return:
-  return h5py.File(DB_FNAME,'r')
+  return h5py.File(db_path,'r')
 
 
 def add_res_to_db(imgname,res,db):
@@ -76,13 +91,14 @@ def add_res_to_db(imgname,res,db):
     db['data'][dname].attrs['txt'] = L
 
 
-def main(viz=False):
+def main(viz=False, db_path: str = DB_FNAME):
   # open databases:
   print (colorize(Color.BLUE,'getting data..',bold=True))
-  db = get_data()
+  db = get_data(db_path)
   print (colorize(Color.BLUE,'\t-> done',bold=True))
 
   # open the output h5 file:
+  os.makedirs(osp.dirname(OUT_FILE), exist_ok=True)
   out_db = h5py.File(OUT_FILE,'w')
   out_db.create_group('/data')
   print (colorize(Color.GREEN,'Storing the output in: '+OUT_FILE, bold=True))
@@ -138,6 +154,7 @@ def main(viz=False):
 if __name__=='__main__':
   import argparse
   parser = argparse.ArgumentParser(description='Genereate Synthetic Scene-Text Images')
+  parser.add_argument('--db_path', default=DB_FNAME, help=f'Input background DB (default: {DB_FNAME})')
   parser.add_argument('--viz',action='store_true',dest='viz',default=False,help='flag for turning on visualizations')
   args = parser.parse_args()
-  main(args.viz)
+  main(args.viz, args.db_path)

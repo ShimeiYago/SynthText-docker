@@ -15,14 +15,15 @@ from common import *
 
 
 
-def viz_textbb(text_im, charBB_list, wordBB, alpha=1.0):
+def viz_textbb(text_im, charBB_list, wordBB, output_path=None, alpha=1.0):
     """
     text_im : image containing text
     charBB_list : list of 2x4xn_i bounding-box matrices
     wordBB : 2x4xm matrix of word coordinates
+    output_path : path to save the visualization (if None, show instead)
     """
     plt.close(1)
-    plt.figure(1)
+    plt.figure(1, figsize=(12, 8))
     plt.imshow(text_im)
     H,W = text_im.shape[:2]
 
@@ -47,26 +48,44 @@ def viz_textbb(text_im, charBB_list, wordBB, alpha=1.0):
 
     plt.gca().set_xlim([0,W-1])
     plt.gca().set_ylim([H-1,0])
-    plt.show(block=False)
+    plt.title('SynthText Visualization (Red: char boxes, Green: word boxes)')
+    plt.axis('off')  # 軸を非表示にして画像をクリーンに
+    
+    if output_path:
+        plt.savefig(output_path, bbox_inches='tight', dpi=150)
+        plt.close()
+    else:
+        plt.show(block=False)
 
 def main(db_fname):
     db = h5py.File(db_fname, 'r')
     dsets = sorted(db['data'].keys())
     print ("total number of images : ", colorize(Color.RED, len(dsets), highlight=True))
+    
+    # 出力ディレクトリを作成
+    output_dir = 'results/visualized'
+    os.makedirs(output_dir, exist_ok=True)
+    
     for k in dsets:
         rgb = db['data'][k][...]
         charBB = db['data'][k].attrs['charBB']
         wordBB = db['data'][k].attrs['wordBB']
         txt = db['data'][k].attrs['txt']
 
-        viz_textbb(rgb, [charBB], wordBB)
+        # 画像を保存
+        output_path = osp.join(output_dir, f'{k}_visualization.png')
+        viz_textbb(rgb, [charBB], wordBB, output_path=output_path)
+        
         print ("image name        : ", colorize(Color.RED, k, bold=True))
         print ("  ** no. of chars : ", colorize(Color.YELLOW, charBB.shape[-1]))
         print ("  ** no. of words : ", colorize(Color.YELLOW, wordBB.shape[-1]))
         print ("  ** text         : ", colorize(Color.GREEN, txt))
+        print ("  ** saved to     : ", colorize(Color.BLUE, output_path))
 
         if 'q' in input("next? ('q' to exit) : "):
             break
+    
+    print(f"\nVisualization images saved to: {colorize(Color.GREEN, output_dir)}")
     db.close()
 
 if __name__=='__main__':
