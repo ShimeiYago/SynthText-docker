@@ -1,12 +1,11 @@
 # SynthText (Docker)
 
-**Docker-enabled fork** of the official SynthText repository for generating synthetic text images as described in ["Synthetic Data for Text Localisation in Natural Images", Ankush Gupta, Andrea Vedaldi, Andrew Zisserman, CVPR 2016](http://www.robots.ox.ac.uk/~vgg/data/scenetext/).
-
+**Run the original [ankush-me/SynthText] with its historical environment (Python 3.6 & legacy wheels) on any modern machine via Docker (linux/amd64).**
 
 **Synthetic Scene-Text Image Samples**
 ![Synthetic Scene-Text Samples](samples.png "Synthetic Samples")
 
-## Getting Started
+## 1. Getting Started
 
 ```bash
 # Build Docker images
@@ -16,7 +15,7 @@ docker-compose build
 docker-compose run --rm synthtext python gen.py
 ```
 
-This will download a data file (~56M) to the `data` directory. This data file includes:
+This will download a sample data file (~56M) to the `data` directory. This data file includes:
 
   - **dset.h5**: This is a sample h5 file which contains a set of 5 images along with their depth and segmentation information. Note, this is just given as an example; you are encouraged to add more images (along with their depth and segmentation information) to this database for your own use.
   - **data/fonts**: three sample fonts (add more fonts to this folder and then update `fonts/fontlist.txt` with their paths).
@@ -31,7 +30,7 @@ If you want to visualize the results stored in  `results/SynthText.h5` later, ru
 docker-compose run --rm synthtext python visualize_results.py
 ```
 
-## Pre-generated Dataset
+## 2. Pre-generated Dataset
 
 A dataset with approximately 800000 synthetic scene-text images generated with this code can be downloaded with following procedures.
 
@@ -65,7 +64,7 @@ docker-compose run --rm synthtext python pack_bgdata_to_h5.py -i downloads/bg_da
 docker-compose run --rm synthtext python gen.py --db_path data/dset_big.h5
 ```
 
-## Cumstom Font
+## 3. Cumstom Font
 
 ### Add Fonts
 
