@@ -90,6 +90,7 @@ def add_res_to_db(imgname,res,db, store_line_bb=False):
     L = res[i]['txt']
     L = [n.encode("ascii", "ignore") for n in L]
     db['data'][dname].attrs['txt'] = L
+
     if store_line_bb:
       # Visual line segmentation: split each placed text snippet by embedded newlines, without
       # altering stored txt (original list kept). Character ordering in charBB already excludes spaces/newlines.
@@ -195,7 +196,6 @@ if __name__=='__main__':
   import argparse
   parser = argparse.ArgumentParser(description='Genereate Synthetic Scene-Text Images')
   parser.add_argument('--db_path', default=DB_FNAME, help=f'Input background DB (default: {DB_FNAME})')
-  parser.add_argument('--viz',action='store_true',dest='viz',default=False,help='flag for turning on visualizations')
   parser.add_argument('--line_bb', action='store_true', dest='line_bb', default=False, help='store line-level rotated rectangles as lineBB attribute')
   args = parser.parse_args()
-  main(args.viz, args.db_path, store_line_bb=args.line_bb)
+  main(False, args.db_path, store_line_bb=args.line_bb)
