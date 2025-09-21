@@ -98,3 +98,26 @@ The visualization script also support `--line_bb` option to show only line boxes
 ```bash
 docker-compose run --rm synthtext python visualize_results.py --line_bb
 ```
+
+## 5. Export to PaddleOCR Detector Format
+
+Convert the generated `results/SynthText.h5` into PaddleOCR detection training format.
+
+Default: word-level boxes (wordBB). If you generated line annotations via `gen.py --line_bb`, add `--line_bb` to export line-level boxes (fallback to word-level if lineBB is absent).
+
+### 5.1 Basic Export (word-level, empty transcription)
+
+```bash
+docker-compose run --rm synthtext python export_to_paddleocr.py \
+  -i results/SynthText.h5 \
+  -o results/paddleocr_data
+```
+
+### 5.2 Line-Level Export (requires generation with --line_bb)
+
+```bash
+docker-compose run --rm synthtext python export_to_paddleocr.py \
+  -i results/SynthText.h5 \
+  -o results/paddleocr_data \
+  --line_bb
+```
